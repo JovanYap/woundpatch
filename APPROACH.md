@@ -22,14 +22,14 @@ The goal is to create something fast and lightweight hence I begin by exploring 
 ![CV Approach](./outputs/cv/abrasions(10)_compare_cv.png)
 
 ### 2.2 Gaussian Mixture Model
-- Used 
+- Lightweight way to separate “wound‑like” pixels from normal skin without training data
 - Analysis: performance was good for trivial testcases but does not work well for multiple wounds or tiny wounds
 ![CV Approach](./outputs/gmm/abrasions(10)_compare_gmm.png)
 
 ### 2.3 Wound-segmentation (Deep learning github repo)
 - Found this repository that is useful for our usecase while doing some literature review and research
-- Analysis: performance was slightly better but does not work well for multiple wounds or tiny wounds
-![CV Approach]()
+- Analysis: performance was slightly better for wounds that are present in the dataset, so we will have to train the models on all the new data so that it will perform well, overall this method has the most potential
+![CV Approach](./outputs/woundseg/abrasions(10)_compare_woundseg.png)
 
 ## 3. References
 - [Kaggle Wound Dataset](https://www.kaggle.com/datasets/yasinpratomo/wound-dataset?resource=download)

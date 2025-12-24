@@ -23,3 +23,4 @@ Outputs are saved to `outputs/` as a bandaged image plus a side-by-side comparis
 - A segmentation-based option is available with `--wound-mode fastsam` (expects `fastsam-s.pt` in the repo root or downloads via Ultralytics).
 - A wound-segmentation model option is available with `--wound-mode woundseg` and uses weights from `wound-segmentation/training_history/2019-12-19 01%3A53%3A15.480800.hdf5`.
 - `woundseg` requires TensorFlow/Keras (installed via `requirements.txt`).
+- For `woundseg` on macOS, use Python 3.11 (TensorFlow does not ship Python 3.12 wheels).

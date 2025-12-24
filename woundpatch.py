@@ -255,13 +255,42 @@ def get_woundseg_model():
         if base_dir not in sys.path:
             sys.path.insert(0, base_dir)
         try:
+            import keras
             from keras.models import load_model
+
+            # Patch missing conv_utils for keras>=2.15 used by wound-segmentation repo.
+            if not hasattr(keras.utils, "conv_utils"):
+                import types
+
+                def normalize_tuple(value, n, name):
+                    if isinstance(value, int):
+                        return (value,) * n
+                    if isinstance(value, (tuple, list)) and len(value) == n:
+                        try:
+                            return tuple(int(v) for v in value)
+                        except Exception as exc:
+                            raise ValueError(f"{name} must be a tuple of {n} ints") from exc
+                    raise ValueError(f"{name} must be a tuple of {n} ints")
+
+                conv_utils = types.SimpleNamespace(normalize_tuple=normalize_tuple)
+                keras.utils.conv_utils = conv_utils
+                sys.modules["keras.utils.conv_utils"] = conv_utils
+
+            if not hasattr(keras.utils, "data_utils"):
+                import types
+
+                data_utils = types.SimpleNamespace(get_file=keras.utils.get_file)
+                keras.utils.data_utils = data_utils
+                sys.modules["keras.utils.data_utils"] = data_utils
+
             from models.deeplab import Deeplabv3, relu6, BilinearUpsampling, DepthwiseConv2D
             from utils.learning.metrics import dice_coef, precision, recall
         except Exception as exc:  # pragma: no cover - optional dependency
-            raise ImportError("TensorFlow/Keras is required for woundseg mode") from exc
+            raise ImportError(
+                "TensorFlow/Keras is required for woundseg mode (Keras import failed)"
+            ) from exc
 
-        model = Deeplabv3(input_shape=(224, 224, 3), classes=1)
+        model = Deeplabv3(weights=None, input_shape=(224, 224, 3), classes=1)
         model = load_model(
             weights_path,
             custom_objects={
@@ -397,7 +426,9 @@ def detect_wound_fastsam(bgr: np.ndarray, skin: np.ndarray) -> list[tuple[tuple[
     return masks_to_bandages(combined, skin)
 
 
-def detect_wound_woundseg(bgr: np.ndarray, skin: np.ndarray) -> list[tuple[tuple[int, int], int, int]]:
+def detect_wound_woundseg(
+    bgr: np.ndarray, skin: np.ndarray
+) -> tuple[list[tuple[tuple[int, int], int, int]], np.ndarray]:
     model = get_woundseg_model()
     input_size = (224, 224)
     resized = cv2.resize(bgr, input_size, interpolation=cv2.INTER_LINEAR).astype("float32")
@@ -413,15 +444,23 @@ def detect_wound_woundseg(bgr: np.ndarray, skin: np.ndarray) -> list[tuple[tuple
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
 
     if mask.sum() == 0:
-        return []
+        return [], np.zeros_like(skin, dtype=np.uint8)
 
     connect_kernel = np.ones((15, 15), np.uint8)
     connected = cv2.dilate(mask, connect_kernel, iterations=1)
     contours, _ = cv2.findContours(connected, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if len(contours) <= 1:
-        return bandage_from_mask(mask)
+        return bandage_from_mask(connected), mask
 
-    return masks_to_bandages(mask, skin)
+    return masks_to_bandages(mask, skin), mask
+
+
+def make_segmentation_overlay(bgr: np.ndarray, mask: np.ndarray) -> Image.Image:
+    rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+    overlay = rgb.copy()
+    overlay[mask > 0] = [220, 60, 60]
+    blended = cv2.addWeighted(rgb, 0.6, overlay, 0.4, 0)
+    return Image.fromarray(blended)
 
 
 def make_bandage(width: int, height: int, variant: int = 0) -> Image.Image:
@@ -508,7 +547,7 @@ def process_image(
     elif wound_mode == "fastsam":
         placements = detect_wound_fastsam(bgr, skin)
     elif wound_mode == "woundseg":
-        placements = detect_wound_woundseg(bgr, skin)
+        placements, seg_mask = detect_wound_woundseg(bgr, skin)
     else:
         placements = detect_wound_heuristic(bgr, skin)
 

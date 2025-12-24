@@ -31,14 +31,15 @@ The goal is to create something fast and lightweight hence I begin by exploring 
 - Analysis: performance was slightly better but does not work well for multiple wounds or tiny wounds
 ![CV Approach]()
 
-# 3. References
+## 3. References
 - [Kaggle Wound Dataset](https://www.kaggle.com/datasets/yasinpratomo/wound-dataset?resource=download)
 - [Wound-segmentation](https://github.com/uwm-bigdata/wound-segmentation)
+- [Codex for some code edits](https://openai.com/codex/)
 
-# 4. Appendix 
+## 4. Appendix 
 I understand that the word limit is 150-300 hence I added the details in the Appendix, feel free to read through it if you want more information. 
 
-## 4.1 Simple CV
+### 4.1 Simple CV
 I used a lightweight ML-based segmentation step so it runs fast on a laptop without heavy models. First, I isolate the arm region with a skin mask that combines HSV and YCrCb thresholds, then keep the largest connected skin component. To estimate arm direction, I run PCA on the skin mask pixels and use the dominant eigenvector as the arm axis, which provides a stable rotation angle even with slight arm tilt.
 
 For wound detection, I treat it as an unsupervised clustering problem within the skin area. I extract per-pixel features (Lab a/b channels for redness, HSV V for darkness, and a Laplacian texture magnitude for abrasions/cuts). I normalize these features and fit a small Gaussian Mixture Model (3–4 components). Components are scored by redness, darkness, and texture; one or two high-scoring components are selected as “wound-like.” After light morphology cleanup, I keep up to three connected components to support multiple wounds of different sizes.

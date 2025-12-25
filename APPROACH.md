@@ -29,7 +29,7 @@ The goal is to create something fast and lightweight hence I begin by exploring 
 ### 2.3 Wound-segmentation (Deep learning github repo)
 - Found this repository that is useful for our usecase while doing some literature review and research
 - Analysis: performance was slightly better for wounds that are present in the dataset, so we will have to train the models on all the new data so that it will perform well, overall this method has the most potential
-![CV Approach](./outputs/woundseg/abrasions(10)_compare_woundseg.png)
+![CV Approach](./outputs/abrasions(10)_compare_woundseg.png)
 
 ## 3. References
 - [Kaggle Wound Dataset](https://www.kaggle.com/datasets/yasinpratomo/wound-dataset?resource=download)
